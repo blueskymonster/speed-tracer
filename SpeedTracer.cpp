@@ -15,6 +15,7 @@ Mat displayFrame; //frame to display
 Mat fgMask; //current foreground mask learned by MOG method
 Ptr<BackgroundSubtractor> pMOG; //MOG Background subtractor
 int keyboard;
+int frame = 0; //current frame number
 
 //debug variables
 bool debug;
@@ -41,9 +42,6 @@ int main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  //create GUI window
-  namedWindow("Speed Tracer");
-
   //debug windows
   if (debug) {
     namedWindow("camera"); //shows the raw camera feed
@@ -52,8 +50,11 @@ int main(int argc, char* argv[]) {
     //TODO: make a window that shows the masked camera feed
   }
 
+  //create GUI window
+  namedWindow("Speed Tracer");
+
   //create background subtractor object
-  pMOG = createBackgroundSubtractorMOG();
+  pMOG = createBackgroundSubtractorMOG2();
 
   //here's where the magic happens
   videoProcessLoop();
@@ -80,6 +81,7 @@ void videoProcessLoop() {
       cerr << "Failed to read frame from camera" << endl;
       exit(EXIT_FAILURE);
     }
+    flip(cameraFrame, cameraFrame, 1);
 
     //update the background model
     pMOG->apply(cameraFrame, fgMask);
@@ -95,6 +97,8 @@ void videoProcessLoop() {
 
     //display image buffer
     imshow("Speed Tracer", displayFrame);
+
+    frame++;
 
     //get input from the keyboard
     keyboard = waitKey(30);
