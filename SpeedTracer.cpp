@@ -1,5 +1,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/background_segm.hpp>
+#include <opencv2/core/utility.hpp>
 
 #include <stdio.h>
 
@@ -22,25 +23,21 @@ bool debug;
 Mat backgroundModel;
 
 //function declarations
-void help();
 void videoProcessLoop();
 
-void help() {
-  cout << "Usage: ./SpeedTracer [--help | --debug]"            << endl
-       << "Options:"                                           << endl
-       << "--help                          Shows this message" << endl
-       << "--debug       Activates debug windows and messages" << endl;
-}
-
 int main(int argc, char* argv[]) {
-  string helpOption = "--help";
-  string debugOption = "--debug";
+  const String commandLineKeys =
+    "{help h usage ? |    | print this message    }"
+    "{debug          |    | run in debug mode     }"
+    ;
 
-  debug = argc == 2 && argv[1] == debugOption;
-  if (!debug && (argc > 2 || (argc == 2 && argv[1] == helpOption))) {
-    help();
-    return EXIT_FAILURE;
+  CommandLineParser clParser(argc, argv, commandLineKeys);
+  if (clParser.has("help")) {
+    clParser.printMessage();
+    return 0;
   }
+
+  debug = clParser.has("debug");
 
   //debug windows
   if (debug) {
