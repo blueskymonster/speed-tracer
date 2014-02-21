@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
   //debug windows
   if (debug) {
     namedWindow("camera"); //shows the raw camera feed
-    //TODO: make a window that shows the currently learned background model
+    namedWindow("background model"); //shows the current background model
     namedWindow("mask"); //shows the foreground mask
     //TODO: make a window that shows the masked camera feed
   }
@@ -89,6 +89,8 @@ void videoProcessLoop() {
     //display debug windows
     if (debug) {
       imshow("camera", cameraFrame);
+      pMOG->getBackgroundImage(backgroundModel);
+      imshow("background model", backgroundModel);
       imshow("mask", fgMask);
     }
 
