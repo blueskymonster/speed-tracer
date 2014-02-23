@@ -17,18 +17,21 @@ Mat fgMask; //current foreground mask learned by MOG method
 Ptr<BackgroundSubtractor> pMOG; //MOG Background subtractor
 int keyboard;
 int frame = 0; //current frame number
+String calibrationScript;
 
 //debug variables
 bool debug;
 Mat backgroundModel;
 
 //function declarations
+void calibrateRunningCamera();
 void videoProcessLoop();
 
 int main(int argc, char* argv[]) {
   const String commandLineKeys =
-    "{help h usage ? |    | print this message    }"
-    "{debug          |    | run in debug mode     }"
+    "{help h usage ?    |                      | print this message                          }"
+    "{debug             |                      | run in debug mode                           }"
+    "{calibrationScript |../webcam-settings.sh | sets the command to run to calibrate camera }"
     ;
 
   CommandLineParser clParser(argc, argv, commandLineKeys);
@@ -50,6 +53,9 @@ int main(int argc, char* argv[]) {
   //create GUI window
   namedWindow("Speed Tracer");
 
+  //get calibration script from command line args
+  calibrationScript = clParser.get<String>("calibrationScript");
+
   //create background subtractor object
   pMOG = createBackgroundSubtractorMOG2();
 
@@ -61,6 +67,11 @@ int main(int argc, char* argv[]) {
   return EXIT_SUCCESS;
 }
 
+void calibrateRunningCamera() {
+  const char* calibScript = calibrationScript.c_str();
+  system(calibScript);
+}
+
 void videoProcessLoop() {
   //initialize video capture from whatever webcam is default
   VideoCapture cap(0);
@@ -70,6 +81,8 @@ void videoProcessLoop() {
     cerr << "Failed to acquire camera" << endl;
     exit(EXIT_FAILURE);
   }
+
+  calibrateRunningCamera();
 
   //start the video loop. 'q' to quit
   while((char)keyboard != 'q') {

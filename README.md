@@ -24,10 +24,6 @@ While this is great for general purpose usage, it is undesirable in this applica
 Most webcams have driver settings that allow you to disable these auto-adjustments. 
 I recommend that white balance, color temperature, and other color-affecting auto-adjustment features are disabled when using this application.
 
-There is a linux based tool called Video4Linux which gets the job done for me. On Debian based systems it can be installed with:
+There is a script called webcam-settings.sh included in the root file which does these adjustments on linux systems with the v4l-utils tool installed.
+On Debian based systems it can be installed with:
     sudo apt-get install v4l-utils
-
-For me, the following command was enough to prevent the background color from shifting, but you may want to disable anything with the word auto in it:
-    v4l2-ctl --set-ctrl white_balance_temperature_auto=0
-Running <code>./webcam-settings.sh</code> will run this command.
-(Note that this command only changes the setting until the next reboot.)
