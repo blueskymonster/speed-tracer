@@ -18,6 +18,8 @@ Ptr<BackgroundSubtractor> pMOG; //MOG Background subtractor
 int keyboard;
 int frame = 0; //current frame number
 String calibrationScript;
+int learningFrames;
+double learningRate;
 
 //debug variables
 bool debug;
@@ -29,9 +31,11 @@ void videoProcessLoop();
 
 int main(int argc, char* argv[]) {
   const String commandLineKeys =
-    "{help h usage ?    |                      | print this message                          }"
-    "{debug             |                      | run in debug mode                           }"
-    "{calibrationScript |../webcam-settings.sh | sets the command to run to calibrate camera }"
+    "{help h usage ?    |                      | print this message                                                                }"
+    "{debug             |                      | run in debug mode                                                                 }"
+    "{calibrationScript |../webcam-settings.sh | sets the command to run to calibrate camera                                       }"
+    "{learningFrames lf |0                     | sets number of frames to use to learn the background. (0 for continuous learning) }"
+    "{learningRate lr   |-1                    | sets the background subtractors learning rate (between 0 and 1, negative for auto)}"
     ;
 
   CommandLineParser clParser(argc, argv, commandLineKeys);
@@ -55,6 +59,12 @@ int main(int argc, char* argv[]) {
 
   //get calibration script from command line args
   calibrationScript = clParser.get<String>("calibrationScript");
+
+  //get learning frames param from command line args
+  learningFrames = clParser.get<int>("learningFrames");
+
+  //get learning rate for background subtractor;
+  learningRate = clParser.get<double>("learningRate");
 
   //create background subtractor object
   pMOG = createBackgroundSubtractorMOG2();
@@ -96,7 +106,10 @@ void videoProcessLoop() {
     flip(cameraFrame, cameraFrame, 1);
 
     //update the background model
-    pMOG->apply(cameraFrame, fgMask);
+    if (learningFrames == 0 || frame < learningFrames) {
+      pMOG->apply(cameraFrame, fgMask, learningRate);
+      pMOG->getBackgroundImage(backgroundModel);
+    }
 
     //copy only foreground pixels to the display image buffer
     cameraFrame.copyTo(displayFrame, fgMask);
@@ -104,7 +117,6 @@ void videoProcessLoop() {
     //display debug windows
     if (debug) {
       imshow("camera", cameraFrame);
-      pMOG->getBackgroundImage(backgroundModel);
       imshow("background model", backgroundModel);
       imshow("mask", fgMask);
     }
