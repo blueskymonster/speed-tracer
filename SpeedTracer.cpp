@@ -82,6 +82,8 @@ void videoProcessLoop() {
     exit(EXIT_FAILURE);
   }
 
+  // Force camera on for calibration
+  cap.read(cameraFrame);
   calibrateRunningCamera();
 
   //start the video loop. 'q' to quit
