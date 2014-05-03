@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
   const String commandLineKeys =
     "{help h usage ?    |                      | print this message                                                                }"
     "{debug             |                      | run in debug mode                                                                 }"
-    "{calibrationScript |../webcam-settings.sh | sets the command to run to calibrate camera                                       }"
+    "{calibrationScript |../do-nothing.sh      | sets the command to run to calibrate camera                                       }"
     "{learningFrames lf |0                     | sets number of frames to use to learn the background. (0 for continuous learning) }"
     "{learningRate lr   |-1                    | sets the background subtractors learning rate (between 0 and 1, negative for auto)}"
     ;
