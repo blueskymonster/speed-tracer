@@ -46,16 +46,20 @@ int main(int argc, char* argv[]) {
 
   debug = clParser.has("debug");
 
+  //create GUI window
+  namedWindow("Speed Tracer", WINDOW_NORMAL);
+
   //debug windows
   if (debug) {
     namedWindow("camera"); //shows the raw camera feed
     namedWindow("background model"); //shows the current background model
     namedWindow("mask"); //shows the foreground mask
     //TODO: make a window that shows the masked camera feed
+  } else {
+    cout << "Running in fullscreen mode" << endl;
+    setWindowProperty("Speed Tracer", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
   }
 
-  //create GUI window
-  namedWindow("Speed Tracer");
 
   //get calibration script from command line args
   calibrationScript = clParser.get<String>("calibrationScript");
@@ -85,7 +89,7 @@ void calibrateRunningCamera() {
 void videoProcessLoop() {
   //initialize video capture from whatever webcam is default
   VideoCapture cap(0);
-  
+
   //verify that the feed has been acquired properly
   if (!cap.isOpened()) {
     cerr << "Failed to acquire camera" << endl;
@@ -113,7 +117,7 @@ void videoProcessLoop() {
 
     //copy only foreground pixels to the display image buffer
     cameraFrame.copyTo(displayFrame, fgMask);
-    
+
     //display debug windows
     if (debug) {
       imshow("camera", cameraFrame);
@@ -129,7 +133,7 @@ void videoProcessLoop() {
     //get input from the keyboard
     keyboard = waitKey(30);
   }
-  
+
   //let the webcam go free
   cap.release();
 }
