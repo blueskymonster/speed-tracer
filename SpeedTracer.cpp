@@ -1,8 +1,11 @@
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui/highgui_c.h>
 #include <opencv2/video/background_segm.hpp>
 #include <opencv2/core/utility.hpp>
 
 #include <stdio.h>
+
+#include <ctime>
 
 #include <iostream>
 #include <sstream>
@@ -25,9 +28,10 @@ double learningRate;
 //debug variables
 bool debug;
 Mat backgroundModel;
+clock_t start;
 
 //function declarations
-void videoProcessLoop(Camera * const);
+void videoProcessLoop(Camera * const, VideoWriter *);
 
 int main(int argc, char* argv[]) {
   const String commandLineKeys =
@@ -67,15 +71,38 @@ int main(int argc, char* argv[]) {
   //create background subtractor object
   pMOG = createBackgroundSubtractorMOG2();
 
+  // Set up the camera object
+  Camera * camera = getCamera(clParser.has("webcam"));
+
+  // Set up a video writer if the `save` param has been set
+  VideoWriter * videoWriter = 0;
+  // if (clParser.has("save")) {
+      Mat sizingFrame;
+      try {
+          camera->getFrame(sizingFrame);
+      } catch (CameraException &e) {
+          cerr << e.what() << " Unable to initalize video writer." << endl;
+          return EXIT_FAILURE;
+      }
+      String fileName = clParser.getPathToApplication() + "/speedTrace.mpeg";
+      videoWriter = new VideoWriter(
+        fileName,
+        CV_FOURCC('M', 'P', 'E', 'G'),
+        24.0,
+        sizingFrame.size(),
+        true);
+  // }
+
   //here's where the magic happens
-  videoProcessLoop(getCamera(clParser.has("webcam")));
+  videoProcessLoop(camera, videoWriter);
 
   destroyAllWindows();
 
   return EXIT_SUCCESS;
 }
 
-void videoProcessLoop(Camera * const camera) {
+void videoProcessLoop(Camera * const camera, VideoWriter * videoWriter) {
+
   // 'q' to quit
   while((char)keyboard != 'q') {
     try {
@@ -106,6 +133,22 @@ void videoProcessLoop(Camera * const camera) {
     //display image buffer
     imshow("Speed Tracer", displayFrame);
 
+    if (frame == 0) {
+      start = clock();
+    } else if (frame == 1000) {
+      double duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+      cerr << "1000 frames shown in " << duration << " seconds." << endl;
+      cerr << "Closing video writer" << endl;
+    }
+
+    if (videoWriter != NULL) {
+      if (videoWriter->isOpened()) {
+        videoWriter->write(displayFrame);
+      } else {
+        cerr << "Failed to open video file to write to." << endl;
+      }
+    }
+
     frame++;
 
     //get input from the keyboard
@@ -114,4 +157,5 @@ void videoProcessLoop(Camera * const camera) {
 
   // Make sure to properly disconnect the cameras
   delete camera;
+  delete videoWriter;
 }
