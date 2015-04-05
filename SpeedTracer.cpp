@@ -9,8 +9,10 @@
 
 #include <iostream>
 #include <sstream>
+#include <string.h>
 
 #include "Camera.cpp"
+#include "UDP.cpp"
 
 using namespace cv;
 using namespace std;
@@ -19,11 +21,13 @@ using namespace std;
 Mat cameraFrame; //current frame from camera
 Mat displayFrame; //frame to display
 Mat fgMask; //current foreground mask learned by MOG method
+Mat foregroundFrame; //Only stores foreground pixels
 Ptr<BackgroundSubtractor> pMOG; //MOG Background subtractor
 int keyboard;
 int frame = 0; //current frame number
 int learningFrames;
 double learningRate;
+bool udp_mode;
 
 //debug variables
 bool debug;
@@ -31,7 +35,7 @@ Mat backgroundModel;
 clock_t start;
 
 //function declarations
-void videoProcessLoop(Camera * const, VideoWriter *);
+void videoProcessLoop(Camera * const, VideoWriter *, UDPSender *);
 
 int main(int argc, char* argv[]) {
   const String commandLineKeys =
@@ -40,6 +44,7 @@ int main(int argc, char* argv[]) {
     "{learningFrames lf |0                     | sets number of frames to use to learn the background. (0 for continuous learning) }"
     "{learningRate lr   |-1                    | sets the background subtractors learning rate (between 0 and 1, negative for auto)}"
     "{webcam            |                      | use built-in cam as default                                                       }"
+    "{udp               |                      | send foreground as 'set x y r b g' UDP packets                                    }"
     ;
 
   CommandLineParser clParser(argc, argv, commandLineKeys);
@@ -49,6 +54,7 @@ int main(int argc, char* argv[]) {
   }
 
   debug = clParser.has("debug");
+  udp_mode = clParser.has("udp");
 
   //create GUI window
   namedWindow("Speed Tracer", WINDOW_NORMAL);
@@ -74,6 +80,12 @@ int main(int argc, char* argv[]) {
   // Set up the camera object
   Camera * camera = getCamera(clParser.has("webcam"));
 
+  // Set up UDP sender
+  UDPSender * udpSender;
+  if (udp_mode) {
+    udpSender = new UDPSender();
+  }
+
   // Set up a video writer if the `save` param has been set
   VideoWriter * videoWriter = 0;
   // if (clParser.has("save")) {
@@ -94,14 +106,17 @@ int main(int argc, char* argv[]) {
   // }
 
   //here's where the magic happens
-  videoProcessLoop(camera, videoWriter);
+  videoProcessLoop(camera, videoWriter, udpSender);
 
   destroyAllWindows();
 
   return EXIT_SUCCESS;
 }
 
-void videoProcessLoop(Camera * const camera, VideoWriter * videoWriter) {
+void videoProcessLoop(
+  Camera * const camera,
+  VideoWriter * videoWriter,
+  UDPSender * udpSender) {
 
   // 'q' to quit
   while((char)keyboard != 'q') {
@@ -122,15 +137,26 @@ void videoProcessLoop(Camera * const camera, VideoWriter * videoWriter) {
 
     //copy only foreground pixels to the display image buffer
     cameraFrame.copyTo(displayFrame, fgMask);
+    cameraFrame.copyTo(foregroundFrame, fgMask);
 
     //display debug windows
     if (debug) {
       imshow("camera", cameraFrame);
       imshow("background model", backgroundModel);
       imshow("mask", fgMask);
+      imshow("foreground", foregroundFrame);
     }
 
-    //display image buffer
+    if (udp_mode) {
+      udpSender->sendColorPixels(foregroundFrame);
+    }
+
+    foregroundFrame = Mat::zeros(
+      foregroundFrame.rows,
+      foregroundFrame.cols,
+      foregroundFrame.type());
+
+    //type image buffer
     imshow("Speed Tracer", displayFrame);
 
     if (frame == 0) {
