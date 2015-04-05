@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <exception>
 #include <stdexcept>
 
@@ -24,6 +25,55 @@ class UDPSender {
     char packet_data[23];
     sockaddr_in addr;
     cv::Mat tinyImage;
+    int current_x;
+    int current_y;
+    int x_delta;
+    int y_delta;
+    int wait_time;
+    int MAX_X;
+    int MAX_Y;
+
+    int get_random_velocity() {
+        return (rand() % 10 + 1) * 3;
+    }
+
+    int time_to_wait() {
+        if (rand() % 30 == 0) {
+            return rand() % 100 + 20;
+        } else {
+            return 0;
+        }
+    }
+
+    void update_velocities(int x_limit, int y_limit) {
+        if (this->wait_time > 0) {
+            this->wait_time -= 1;
+            return;
+        } else {
+            this->wait_time = this->time_to_wait();
+        }
+        this->current_x += this->x_delta;
+        this->current_y += this->y_delta;
+
+        if (this->current_x <= 0 || this->current_x >= x_limit) {
+            this->x_delta = this->get_random_velocity();
+            if (this->current_x > 0) {
+                this->x_delta *= -1;
+                this->current_x = x_limit;
+            } else {
+                this->current_x = 0;
+            }
+        }
+        if (this->current_y <= 0 || this->current_y >= y_limit) {
+            this->y_delta = this->get_random_velocity();
+            if (this->current_y > 0) {
+                this->y_delta *= -1;
+                this->current_y = y_limit;
+            } else {
+                this->current_y = 0;
+            }
+        }
+    }
   public:
     UDPSender() {
         handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -39,10 +89,17 @@ class UDPSender {
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htonl(address);
         addr.sin_port = htons(port);
+        current_x = 0;
+        current_y = 0;
+        x_delta = this->get_random_velocity();
+        y_delta = this->get_random_velocity();
+        wait_time = 0;
+        MAX_X = 1500;
+        MAX_Y = 1000;
     }
 
     void sendColorPixels(cv::Mat &mat) {
-        cv::resize(mat, this->tinyImage, cv::Size(0, 0), 0.25, 0.25);
+        cv::resize(mat, this->tinyImage, cv::Size(0, 0), 0.5, 0.5);
         int rows = tinyImage.rows;
         int cols = tinyImage.cols;
         int channels = tinyImage.channels();
@@ -63,8 +120,10 @@ class UDPSender {
                 }
                 sprintf(
                     this->packet_data,
-                    "set %d %d %d %d %d",
-                    x, y, (int)r, (int)g, (int)b
+                    "%d %d %d %d %d",
+                    x + this->current_x,
+                    y + this->current_y,
+                    (int)r, (int)g, (int)b
                 );
                 packet_size = strlen(this->packet_data);
                 sent_bytes = sendto(
@@ -80,5 +139,6 @@ class UDPSender {
                 }
             }
         }
+        this->update_velocities(this->MAX_X - cols, this->MAX_Y - rows);
     }
 };
