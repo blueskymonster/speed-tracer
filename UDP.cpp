@@ -32,6 +32,7 @@ class UDPSender {
     int wait_time;
     int MAX_X;
     int MAX_Y;
+    double image_scale;
 
     int get_random_velocity() {
         return (rand() % 10 + 1) * 3;
@@ -96,10 +97,16 @@ class UDPSender {
         wait_time = 0;
         MAX_X = 1500;
         MAX_Y = 1000;
+        image_scale = 1.0;
     }
 
     void sendColorPixels(cv::Mat &mat) {
-        cv::resize(mat, this->tinyImage, cv::Size(0, 0), 0.5, 0.5);
+        cv::resize(
+            mat,
+            this->tinyImage,
+            cv::Size(0, 0),
+            this->image_scale,
+            this->image_scale);
         int rows = tinyImage.rows;
         int cols = tinyImage.cols;
         int channels = tinyImage.channels();
